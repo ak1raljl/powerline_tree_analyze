@@ -42,19 +42,6 @@ The project uses LiDAR point cloud data and performs semantic segmentation to cl
 - Supports train/validation/test splits
 - Computes label weights for handling class imbalance
 
-### test_seg.py
-- Contains the main tree clearance analysis logic
-- Performs nearest neighbor calculations to find distances between vegetation and conductors
-- Generates output files with encroachment points and clearances
-
-### test_ladiar.py
-- LiDAR point cloud visualization and processing script
-- Performs operations like voxel downsampling, statistical outlier removal, and ground plane segmentation
-
-### test_dataset.py
-- Dataset inspection utility
-- Provides statistics about point cloud files
-
 ### train.py
 - Training script for segmentation models
 - Configurable parameters for model training (epochs, batch size, learning rate)
