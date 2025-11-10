@@ -5,19 +5,6 @@ This project focuses on analyzing LiDAR point cloud data for powerline infrastru
 
 The project uses LiDAR point cloud data and performs semantic segmentation to classify points into categories like ground, vegetation, building, transmission wire, distribution wire, pole, transmission tower, fence, vehicle, noise, and unassigned. It then analyzes clearance between vegetation and power lines to identify potential safety hazards.
 
-## Project Structure
-```
-├── data/                    # Dataset directory
-│   ├── eclair/             # ECLAIR dataset
-│   │   ├── labels.json     # Label definitions and split information
-│   │   └── pointclouds/    # LiDAR point cloud files (.laz)
-│   └── eclairDataloader.py # PyTorch dataset and loader implementation
-├── train.py                # Training script for segmentation models
-├── test_seg.py             # Tree clearance analysis script
-├── test_ladiar.py          # LiDAR visualization and processing script
-└── test_dataset.py         # Dataset inspection script
-```
-
 ## Key Features
 
 ### Data Processing
