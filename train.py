@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument('--learning_rate', default=0.001, type=float, help='Initial learning rate')
     parser.add_argument('--log_dir', type=str, default='logs/', help='Directory to save logs and models')
     parser.add_argument('--npoints', type=int, default=4096, help='Point Number [default: 4096]')
-    parser.add_argument('--block_size', type=float, default=100.0, help='Block size in meters [default: 100.0]')
+    parser.add_argument('--block_size', type=float, default=10.0, help='Block size in meters [default: 100.0]')
     parser.add_argument('--sample_rate', type=float, default=1.0, help='Sample rate [default: 1.0]')
     parser.add_argument('--data_root', type=str, default='data/eclair/', help='Path to ECLAIR dataset root')
     parser.add_argument('--decay_rate', type=float, default=1e-4, help='weight decay [default: 1e-4]')
@@ -80,18 +80,18 @@ def main(args):
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=4,
+        num_workers=0,  # Set to 0 to disable multiprocessing
         drop_last=True,
-        pin_memory=True
+        pin_memory=True  # Set to False to reduce memory usage
     )
 
     valDataLoader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=4,
+        num_workers=0,  # Set to 0 to disable multiprocessing
         drop_last=True,
-        pin_memory=True
+        pin_memory=True  # Set to False to reduce memory usage
     )
 
     weights = torch.Tensor(train_dataset.label_weights).cuda()
@@ -221,14 +221,14 @@ def main(args):
                 total_correct += correct
                 total_seen += (args.batch_size * args.npoints)
                 tmp, _ = np.histogram(batch_label, range(NUM_CLASSES + 1))
-                labelweights += tmp
+                label_weights += tmp
 
                 for l in range(NUM_CLASSES):
                     total_seen_class[l] += np.sum((batch_label == l))
                     total_correct_class[l] += np.sum((pred_val == l) & (batch_label == l))
                     total_iou_deno_class[l] += np.sum(((pred_val == l) | (batch_label == l)))
 
-            labelweights = labelweights.astype(np.float32) / np.sum(labelweights.astype(np.float32))
+            label_weights = label_weights.astype(np.float32) / np.sum(label_weights.astype(np.float32))
             mIoU = np.mean(np.array(total_correct_class) / (np.array(total_iou_deno_class, dtype=float) + 1e-6))
 
             print('Validation mean loss: %f' % (loss_sum / num_batches))
@@ -239,7 +239,7 @@ def main(args):
             for l in range(NUM_CLASSES):
                 iou_per_class_str += 'class %s weight: %.3f, IoU: %.3f \n' % (
                     seg_label_to_cat[l] + ' ' * (20 - len(seg_label_to_cat[l])),
-                    labelweights[l],
+                    label_weights[l],
                     total_correct_class[l] / float(total_iou_deno_class[l] + 1e-6))
             print(iou_per_class_str)
             print('Validation mean loss: %f' % (loss_sum / num_batches))
