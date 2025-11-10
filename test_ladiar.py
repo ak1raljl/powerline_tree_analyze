@@ -4,7 +4,7 @@ import open3d as o3d
 import matplotlib.pyplot as plt
 
 # 1. 读取 LAS 文件
-las = laspy.read("14-15(N13_N14).las")  
+las = laspy.read("/home/ak1ra/ladiar/Pointnet_Pointnet2_pytorch/data/eclair/pointclouds/pointcloud_0.laz")  
 points = np.vstack((las.x, las.y, las.z)).transpose()  # N×3 数组
 
 # 2. 转为 Open3D 点云
@@ -12,7 +12,7 @@ pcd = o3d.geometry.PointCloud()
 pcd.points = o3d.utility.Vector3dVector(points)
 voxel_size = 0.5  # 米
 pcd_down = pcd.voxel_down_sample(voxel_size)
-cl, ind = pcd_down.remove_statistical_outlier(nb_neighbors=5, std_ratio=2.0)
+cl, ind = pcd_down.remove_statistical_outlier(nb_neighbors=5, std_ratio=1.0)
 pcd_clean = pcd_down.select_by_index(ind)
 # 3. 可视化
 vis = o3d.visualization.Visualizer()
