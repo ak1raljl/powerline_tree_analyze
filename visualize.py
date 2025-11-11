@@ -40,7 +40,7 @@ def load_model(model_path, num_classes=11):
     
     return classifier
 
-def run_inference_on_file(model, file_path, num_points=4096, block_size=10.0, device='cuda', full_cloud=False):
+def run_inference_on_file(model, file_path, num_points=4096, device='cuda', full_cloud=False):
     las = laspy.read(file_path)
     points_xyz = np.vstack((las.x, las.y, las.z)).transpose()
     N_points = points_xyz.shape[0]
@@ -71,120 +71,58 @@ def run_inference_on_file(model, file_path, num_points=4096, block_size=10.0, de
     all_predictions = np.zeros(N_points, dtype=np.int32)
     vote_count = np.zeros(N_points, dtype=np.int32)
     
-    if full_cloud:
-        # Process entire point cloud by sliding window approach
-        print(f"Processing entire cloud with {N_points} points using sliding window")
+    # Process entire point cloud by sliding window approach
+    print(f"Processing entire cloud with {N_points} points using sliding window")
+    
+    # Process all points in batches of num_points
+    for start_idx in range(0, N_points, num_points // 2):  # 50% overlap for better coverage
+        end_idx = min(start_idx + num_points, N_points)
+        batch_size = end_idx - start_idx
         
-        # Process all points in batches of num_points
-        for start_idx in range(0, N_points, num_points // 2):  # 50% overlap for better coverage
-            end_idx = min(start_idx + num_points, N_points)
-            batch_size = end_idx - start_idx
-            
-            # Get points for this batch
-            selected_points = all_points[start_idx:end_idx]
-            corresponding_indices = np.arange(start_idx, end_idx)
-            
-            # If batch is smaller than num_points, pad with duplicates
-            if batch_size < num_points:
-                padding_needed = num_points - batch_size
-                padding_indices = np.random.choice(batch_size, padding_needed, replace=True)
-                selected_points = np.vstack([selected_points, selected_points[padding_indices]])
-            
-            # Calculate center of current batch
-            center = np.mean(selected_points[:batch_size, :3], axis=0)
-            
-            # Prepare current points as done in the training dataset
-            current_points = np.zeros((num_points, 9))
-            current_points[:, 6] = selected_points[:, 0] / coord_max[0]  # Normalize coordinates
-            current_points[:, 7] = selected_points[:, 1] / coord_max[1]
-            current_points[:, 8] = selected_points[:, 2] / coord_max[2]
-            selected_points_centered = np.copy(selected_points)
-            selected_points_centered[:, 0] = selected_points_centered[:, 0] - center[0]  # Center the batch
-            selected_points_centered[:, 1] = selected_points_centered[:, 1] - center[1]
-            current_points[:, 0:6] = selected_points_centered
-            
-            # Prepare for model input
-            model_input = torch.tensor(current_points[np.newaxis, :, :], dtype=torch.float32).to(device)
-            model_input = model_input.transpose(2, 1)  # Transpose for model input: (B, C, N)
-            
-            # Run inference
-            with torch.no_grad():
-                seg_pred, _ = model(model_input)  # Output shape: (B, N, C)
-                pred_choice = seg_pred.contiguous().cpu().data.max(2)[1]  # Get predictions: (B, N)
-                pred_choice = pred_choice[0]  # Get the first (and only) batch: (N,)
-            
-            # Accumulate predictions only for valid points (not padded ones)
-            all_predictions[corresponding_indices] += pred_choice[:batch_size].numpy()
-            vote_count[corresponding_indices] += 1
-            
-            if (start_idx // (num_points // 2)) % 10 == 0:
-                print(f"Processed {end_idx}/{N_points} points ({100*end_idx/N_points:.1f}%)")
+        # Get points for this batch
+        selected_points = all_points[start_idx:end_idx]
+        corresponding_indices = np.arange(start_idx, end_idx)
         
-        # Average the votes
-        non_zero_votes = vote_count > 0
-        all_predictions[non_zero_votes] = np.floor_divide(all_predictions[non_zero_votes], vote_count[non_zero_votes])
+        # If batch is smaller than num_points, pad with duplicates
+        if batch_size < num_points:
+            padding_needed = num_points - batch_size
+            padding_indices = np.random.choice(batch_size, padding_needed, replace=True)
+            selected_points = np.vstack([selected_points, selected_points[padding_indices]])
         
-    else:
-        # Original block-based approach
-        num_blocks_needed = int(np.ceil(N_points / num_points))
-        print(f"Processing {file_path} - approximately {num_blocks_needed} blocks")
+        # Calculate center of current batch
+        center = np.mean(selected_points[:batch_size, :3], axis=0)
         
-        for i in range(num_blocks_needed):
-            # Randomly select a center point
-            center_idx = np.random.choice(N_points)
-            center = all_points[center_idx][:3]
-            
-            # Define block boundaries
-            block_min = center - [block_size / 2.0, block_size / 2.0, 0]
-            block_max = center + [block_size / 2.0, block_size / 2.0, 0]
-
-            # Find points within the block
-            block_indices = np.where(
-                (all_points[:, 0] >= block_min[0]) & (all_points[:, 0] <= block_max[0]) &
-                (all_points[:, 1] >= block_min[1]) & (all_points[:, 1] <= block_max[1])
-            )[0]
-
-            if len(block_indices) == 0:
-                continue  # Skip if no points in this block
-
-            # Select points in the block
-            selected_points = all_points[block_indices]
-            
-            # If we have more points than needed, randomly select num_points
-            if len(selected_points) >= num_points:
-                selected_point_indices = np.random.choice(selected_points.shape[0], num_points, replace=False)
-                selected_points = selected_points[selected_point_indices]
-                corresponding_indices = block_indices[selected_point_indices]
-            else:
-                # If we have fewer points than needed, randomly duplicate
-                selected_point_indices = np.random.choice(selected_points.shape[0], num_points, replace=True)
-                selected_points = selected_points[selected_point_indices]
-                corresponding_indices = block_indices[selected_point_indices]
+        # Prepare current points as done in the training dataset
+        current_points = np.zeros((num_points, 9))
+        current_points[:, 6] = selected_points[:, 0] / coord_max[0]  # Normalize coordinates
+        current_points[:, 7] = selected_points[:, 1] / coord_max[1]
+        current_points[:, 8] = selected_points[:, 2] / coord_max[2]
+        selected_points_centered = np.copy(selected_points)
+        selected_points_centered[:, 0] = selected_points_centered[:, 0] - center[0]  # Center the batch
+        selected_points_centered[:, 1] = selected_points_centered[:, 1] - center[1]
+        current_points[:, 0:6] = selected_points_centered
         
-            # Prepare current points as done in the training dataset
-            current_points = np.zeros((num_points, 9))
-            current_points[:, 6] = selected_points[:, 0] / coord_max[0]  # Normalize coordinates
-            current_points[:, 7] = selected_points[:, 1] / coord_max[1]
-            current_points[:, 8] = selected_points[:, 2] / coord_max[2]
-            selected_points_centered = np.copy(selected_points)
-            selected_points_centered[:, 0] = selected_points_centered[:, 0] - center[0]  # Center the block
-            selected_points_centered[:, 1] = selected_points_centered[:, 1] - center[1]
-            current_points[:, 0:6] = selected_points_centered
-            
-            # Prepare for model input
-            model_input = torch.tensor(current_points[np.newaxis, :, :], dtype=torch.float32).to(device)
-            model_input = model_input.transpose(2, 1)  # Transpose for model input: (B, C, N)
-            
-            # Run inference
-            with torch.no_grad():
-                seg_pred, _ = model(model_input)  # Output shape: (B, N, C)
-                pred_choice = seg_pred.contiguous().cpu().data.max(2)[1]  # Get predictions: (B, N)
-                pred_choice = pred_choice[0]  # Get the first (and only) batch: (N,)
-
-            # Ensure we're only using the predictions for the valid corresponding indices
-            n_valid_indices = len(corresponding_indices)
-            all_predictions[corresponding_indices] += pred_choice[:n_valid_indices].numpy()
-            vote_count[corresponding_indices] += 1
+        # Prepare for model input
+        model_input = torch.tensor(current_points[np.newaxis, :, :], dtype=torch.float32).to(device)
+        model_input = model_input.transpose(2, 1)  # Transpose for model input: (B, C, N)
+        
+        # Run inference
+        with torch.no_grad():
+            seg_pred, _ = model(model_input)  # Output shape: (B, N, C)
+            pred_choice = seg_pred.contiguous().cpu().data.max(2)[1]  # Get predictions: (B, N)
+            pred_choice = pred_choice[0]  # Get the first (and only) batch: (N,)
+        
+        # Accumulate predictions only for valid points (not padded ones)
+        all_predictions[corresponding_indices] += pred_choice[:batch_size].numpy()
+        vote_count[corresponding_indices] += 1
+        
+        if (start_idx // (num_points // 2)) % 10 == 0:
+            print(f"Processed {end_idx}/{N_points} points ({100*end_idx/N_points:.1f}%)")
+    
+    # Average the votes
+    non_zero_votes = vote_count > 0
+    all_predictions[non_zero_votes] = np.floor_divide(all_predictions[non_zero_votes], vote_count[non_zero_votes])
+        
     
     return all_predictions, points_xyz, gt_labels, hasattr(las, 'red')
 
@@ -340,24 +278,20 @@ def main(args):
             model, 
             file_path, 
             num_points=args.npoints,
-            block_size=args.block_size,
             full_cloud=True
         )
         
-        # If we want to export to LAS file
         if args.export_las:
             os.makedirs(args.output_dir, exist_ok=True)
             base_name = os.path.splitext(os.path.basename(file_path))[0]
             output_path = os.path.join(args.output_dir, f"{base_name}_segmented.las")
             
-            # Export the predictions to LAS file
             export_to_las(
                 predictions=predictions,
                 original_file_path=file_path,
                 output_file_path=output_path
             )
         
-        # Visualize results if requested
         if args.visualize and i < args.num_visualize:
             if args.compare_gt and gt_labels is not None:
                 title = f"File {i+1}: {filename} - Prediction vs Ground Truth"
@@ -395,7 +329,6 @@ if __name__ == '__main__':
     parser.add_argument('--compare_gt', action='store_true')
     parser.add_argument('--num_visualize', type=int, default=5)
     parser.add_argument('--npoints', type=int, default=4096)
-    parser.add_argument('--block_size', type=float, default=10.0)
     
     args = parser.parse_args()
     
