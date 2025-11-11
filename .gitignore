@@ -1,4 +1,6 @@
-data/eclair
-data/__pycache__
+__pycache__/
+data/eclair/
+data/__pycache__/
 logs/
+output/
 QWEN.md
