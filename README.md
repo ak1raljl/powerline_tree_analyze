@@ -3,8 +3,6 @@
 ## Overview
 This project focuses on analyzing LiDAR point cloud data for powerline infrastructure and tree clearance analysis. The primary purpose is to perform semantic segmentation of LiDAR data to identify powerlines, towers, poles, vegetation, and other infrastructure elements, and then analyze potential tree-encroachment risks near powerlines.
 
-The project uses LiDAR point cloud data and performs semantic segmentation to classify points into categories like ground, vegetation, building, transmission wire, distribution wire, pole, transmission tower, fence, vehicle, noise, and unassigned. It then analyzes clearance between vegetation and power lines to identify potential safety hazards.
-
 ## Key Features
 
 ### Data Processing
@@ -16,10 +14,6 @@ The project uses LiDAR point cloud data and performs semantic segmentation to cl
 - **Classification-based Analysis**: Determines clearance distances between conductors and vegetation
 - **Export Capabilities**: Generates CSV reports and LAS files with encroachment points
 - **Configurable Thresholds**: Allows setting custom clearance distances (default 4.0 meters)
-
-### Visualization
-- **Open3D Integration**: Visualizes processed point clouds with configurable settings
-- **Color Coding**: Different colors for different classified elements
 
 ## Key Files and Functions
 
@@ -33,15 +27,6 @@ The project uses LiDAR point cloud data and performs semantic segmentation to cl
 - Training script for segmentation models
 - Configurable parameters for model training (epochs, batch size, learning rate)
 
-## Technologies Used
-- **Python**: Core programming language
-- **PyTorch**: Deep learning framework for segmentation model training
-- **laspy**: Reading/writing LAS/LAZ point cloud files
-- **Open3D**: 3D data processing and visualization
-- **NumPy**: Numerical computations
-- **SciPy**: Spatial data structures (cKDTree for efficient nearest neighbor searches)
-- **Pandas**: Data manipulation for reports
-
 ## Dataset
 The project uses the ECLAIR dataset which contains:
 - Multiple `.laz` files with LiDAR point cloud data
@@ -52,21 +37,17 @@ The project uses the ECLAIR dataset which contains:
 ## Building and Running
 
 ### Prerequisites
-- Python 3.7+
-- PyTorch
-- laspy
-- Open3D
-- NumPy, SciPy, Pandas
+- Python 3.8
+- torch 2.9.0+cu126
+- laspy 2.6.1
+- open3d 0.19.0
+- numpy,scipy,pandas
 
-### Installation
+
+### Running Train
 ```bash
-pip install torch laspy open3d numpy scipy pandas tqdm
+python train.py --model pointnet2_sem_seg --batch_size 64 --epoch 32
 ```
-
-### Running Analysis
-- For tree clearance analysis: `python test_seg.py <input.las|laz> [clearance_m] [out_prefix]`
-- For training: `python train.py --model <model_name> --batch_size <size> --epoch <count>`
-- For dataset inspection: `python test_dataset.py`
 
 ## Development Conventions
 - Point cloud processing follows standard LiDAR data processing workflows
@@ -93,5 +74,3 @@ The semantic segmentation model classifies point clouds into these categories:
 - 8: vehicle
 - 9: noise
 - 10: unassigned
-
-This project provides a comprehensive workflow for analyzing powerline infrastructure from LiDAR data, with a focus on identifying potential tree encroachment risks that could affect power delivery and safety.

@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size for training')
     parser.add_argument('--epoch', default=100, type=int, help='Number of epochs to train')
     parser.add_argument('--learning_rate', default=0.001, type=float, help='Initial learning rate')
-    parser.add_argument('--log_dir', type=str, default='logs/', help='Directory to save logs and models')
+    parser.add_argument('--log_dir', type=str, default=None, help='Directory to save logs and models')
     parser.add_argument('--npoints', type=int, default=4096, help='Point Number [default: 4096]')
     parser.add_argument('--block_size', type=float, default=10.0, help='Block size in meters [default: 100.0]')
     parser.add_argument('--sample_rate', type=float, default=1.0, help='Sample rate [default: 1.0]')
@@ -50,8 +50,8 @@ def main(args):
     else:
         log_dir = log_dir.joinpath(args.log_dir)
     log_dir.mkdir(exist_ok=True)
-    checkpoint_dir = log_dir.joinpath('checkpoints/')
-    checkpoint_dir.mkdir(exist_ok=True)
+    # checkpoint_dir = log_dir.joinpath('checkpoints/')
+    # checkpoint_dir.mkdir(exist_ok=True)
 
     NUM_CLASSES = 11
 
@@ -183,7 +183,7 @@ def main(args):
         print('Training accuracy: %f' % (total_correct / float(total_seen)))
 
         if epoch % args.save_freq == 0:
-            savepath = str(checkpoint_dir) + '/model_' + str(epoch) + '.pth'
+            savepath = str(log_dir) + '/model_' + str(epoch) + '.pth'
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': classifier.state_dict(),
@@ -247,7 +247,7 @@ def main(args):
 
             if mIoU >= best_iou:
                 best_iou = mIoU
-                savepath = str(checkpoint_dir) + '/best_model.pth'
+                savepath = str(log_dir) + '/best_model.pth'
                 torch.save({
                     'epoch': epoch,
                     'model_state_dict': classifier.state_dict(),
