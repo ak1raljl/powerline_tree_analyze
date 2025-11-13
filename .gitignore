@@ -1,6 +1,7 @@
 __pycache__/
 data/eclair/
 data/__pycache__/
+data/eclair.zip
 logs/
 output/
 QWEN.md
