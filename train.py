@@ -229,21 +229,26 @@ def main(args):
                     total_iou_deno_class[l] += np.sum(((pred_val == l) | (batch_label == l)))
 
             label_weights = label_weights.astype(np.float32) / np.sum(label_weights.astype(np.float32))
-            mIoU = np.mean(np.array(total_correct_class) / (np.array(total_iou_deno_class, dtype=float) + 1e-6))
+            iou_per_class = []
+            for l in range(NUM_CLASSES):
+                if total_iou_deno_class[l] > 0:
+                    iou = total_correct_class[l] / float(total_iou_deno_class[l])
+                    iou_per_class.append(iou)
+                else:
+                    iou_per_class.append(np.nan)
+            valid_ious = [iou for iou in iou_per_class if not np.isnan(iou)]
+            mIoU = np.mean(valid_ious) if len(valid_ious) > 0 else 0.0
 
             print('Validation mean loss: %f' % (loss_sum / num_batches))
-            print('Validation point avg class IoU: %f' % mIoU)
-            print('Validation point accuracy: %f' % (total_correct / float(total_seen)))
-            print('Validation point avg class acc: %f' % (np.mean(np.array(total_correct_class) / (np.array(total_seen_class, dtype=float) + 1e-6))))
-            iou_per_class_str = 'IoU per class: '
+            print('Validation mIoU: %f' % mIoU)
+            print('Validation accuracy: %f' % (total_correct / float(total_seen)))
+            iou_per_class_str = 'IoU per class: ' + '\n'
             for l in range(NUM_CLASSES):
                 iou_per_class_str += 'class %s weight: %.3f, IoU: %.3f \n' % (
                     seg_label_to_cat[l] + ' ' * (20 - len(seg_label_to_cat[l])),
                     label_weights[l],
                     total_correct_class[l] / float(total_iou_deno_class[l] + 1e-6))
             print(iou_per_class_str)
-            print('Validation mean loss: %f' % (loss_sum / num_batches))
-            print('Validation accuracy: %f' % (total_correct / float(total_seen)))
 
             if mIoU >= best_iou:
                 best_iou = mIoU
