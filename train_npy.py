@@ -268,18 +268,18 @@ def main(args):
             print('Validation accuracy: %f' % (total_correct / float(total_seen)))
             print('Validation mIoU: %f' % mIoU)
             print('Per class IoU:')
-            print(f'{"ID":>3} {"Class Name":<20} {"IoU":>8} {"Weight":>8}')
+            print(f'{"ID":>3} {"Class Name":<20} {"Weight":>8} {"IoU":>8}')
             for l in range(NUM_CLASSES):
                 class_name = seg_classes[l]
                 weight = label_weights[l]
                 if total_iou_deno_class[l] > 0:
                     iou = total_correct_class[l] / float(total_iou_deno_class[l])
                     if not np.isnan(iou):
-                        print(f'{l:3d} {class_name:20s} {iou:8.4f} {weight:8.4f}')
+                        print(f'{l:3d} {class_name:20s} {weight:8.4f} {iou:8.4f} ')
                     else:
-                        print(f'{l:3d} {class_name:20s} {"N/A":>8} {weight:8.4f}')
+                        print(f'{l:3d} {class_name:20s} {weight:8.4f} {"N/A":>8} ')
                 else:
-                    print(f'{l:3d} {class_name:20s} {"N/A":>8} {weight:8.4f}')
+                    print(f'{l:3d} {class_name:20s} {weight:8.4f} {"N/A":>8} ')
 
             if mIoU > best_iou:
                 best_iou = mIoU

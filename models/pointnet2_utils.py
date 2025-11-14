@@ -56,6 +56,11 @@ def index_points(points, idx):
     repeat_shape = list(idx.shape)
     repeat_shape[0] = 1
     batch_indices = torch.arange(B, dtype=torch.long).to(device).view(view_shape).repeat(repeat_shape)
+    
+    # Add boundary check for indices to prevent out-of-bounds access
+    N = points.shape[1]
+    idx = torch.clamp(idx, 0, N - 1)  # Clamp indices to valid range [0, N-1]
+    
     new_points = points[batch_indices, idx, :]
     return new_points
 
@@ -104,6 +109,11 @@ def query_ball_point(radius, nsample, xyz, new_xyz):
     group_first = group_idx[:, :, 0].view(B, S, 1).repeat([1, 1, nsample])
     mask = group_idx == N
     group_idx[mask] = group_first[mask]
+    
+    # Additional boundary check to prevent out-of-bounds access
+    # This handles edge cases where group_idx might contain invalid indices
+    group_idx = torch.clamp(group_idx, 0, N - 1)
+    
     return group_idx
 
 
