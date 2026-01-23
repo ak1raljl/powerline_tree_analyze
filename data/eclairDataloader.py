@@ -6,17 +6,17 @@ from tqdm import tqdm
 from torch.utils.data import Dataset
 
 ECLAIR_CLASSES = [
-    'ground',              # 0: 地面
-    'vegetation',          # 1: 植被
-    'building',            # 2: 建筑物
-    'transmission_wire',   # 3: 输电线
-    'distribution_wire',   # 4: 配电线
-    'pole',                # 5: 电线杆
-    'transmission_tower',  # 6: 输电塔
-    'fence',               # 7: 围栏
-    'vehicle',             # 8: 车辆
-    'noise',               # 9: 噪声
-    'unassigned'           # 10: 未分类
+    'ground',              # 0: ground
+    'vegetation',          # 1: vegetation
+    'building',            # 2: building
+    'transmission_wire',   # 3: transmission_wire
+    'distribution_wire',   # 4: distribution_wire
+    'pole',                # 5: pole
+    'transmission_tower',  # 6: transmission_tower
+    'fence',               # 7: fence
+    'vehicle',             # 8: vehicle
+    'noise',               # 9: noise
+    'unassigned'           # 10: unassigned
 ]
 
 class2label = {cls: idx for idx, cls in enumerate(ECLAIR_CLASSES)}
